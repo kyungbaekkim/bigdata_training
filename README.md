@@ -1,1 +1,1 @@
-Excercise files for BigData Training
+Exercise files for BigData Training
