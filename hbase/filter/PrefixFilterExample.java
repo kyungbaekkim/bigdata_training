@@ -3,6 +3,7 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Result;
@@ -13,44 +14,42 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.BinaryComparator;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.RegexStringComparator;
-import org.apache.hadoop.hbase.filter.FamilyFilter;
+import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.filter.SubstringComparator;
 import org.apache.hadoop.hbase.util.Bytes;
 
-public class FamilyFilterExample{
+public class PrefixFilterExample{
   public static void main(String[] args) throws IOException{
     Configuration conf = HBaseConfiguration.create();
     Connection connection = ConnectionFactory.createConnection(conf);
     Table table = connection.getTable(TableName.valueOf("random_table"));
 
     Scan scan = new Scan();
-    scan.addColumn(Bytes.toBytes("colfam1"), Bytes.toBytes("col-100"));
 
-    Filter filter1 = new FamilyFilter(CompareFilter.CompareOp.LESS, 
-      new BinaryComparator(Bytes.toBytes("colfam2")));
+    PrefixFilter filter1 = new PrefixFilter( Bytes.toBytes("row-10"));
+
     scan.setFilter(filter1);
     ResultScanner scanner1 = table.getScanner(scan);
-    System.out.println("Scanning table #1...less colfam2");
+    System.out.println("Scanning table #1... row-10");
     for (Result res : scanner1) {
-      System.out.println(res);
+      for (Cell cell : res.rawCells()) {
+        System.out.println("Cell: " + cell + ", Value: " + 
+          Bytes.toString(cell.getValueArray(), cell.getValueOffset(),
+            cell.getValueLength()));
+      }
     }
     scanner1.close();
 
     Get get1 = new Get(Bytes.toBytes("row-5"));
-    get1.addColumn(Bytes.toBytes("colfam1"), Bytes.toBytes("col-100"));
     get1.setFilter(filter1); 
     Result result1 = table.get(get1);
     System.out.println("###############################");
-    System.out.println("Result of Get(): " + result1);
+    System.out.println("Result of Get(): row-59 ");
+      for (Cell cell : result1.rawCells()) {
+        System.out.println("Cell: " + cell + ", Value: " + 
+          Bytes.toString(cell.getValueArray(), cell.getValueOffset(),
+            cell.getValueLength()));
+      }
 
-    Filter filter2 = new FamilyFilter(CompareFilter.CompareOp.EQUAL,
-      new BinaryComparator(Bytes.toBytes("colfam3")));
-    Get get2 = new Get(Bytes.toBytes("row-5")); 
-    get2.addFamily(Bytes.toBytes("colfam1"));
-    get2.setFilter(filter2);
-    Result result2 = table.get(get2); 
-    System.out.println("###############################");
-    System.out.println("Result of get(): " + result2);
   }
 }
